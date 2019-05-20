@@ -18,6 +18,15 @@ class ARPGProjectCharacter : public ACharacter
 	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	class UCameraComponent* FollowCamera;
+
+private:
+
+	UPROPERTY(VisibleAnywhere, Category = "Stats")
+		float Health;
+
+	UPROPERTY(VisibleAnywhere, Category = "Stats")
+		float Mana;
+
 public:
 	ARPGProjectCharacter();
 
@@ -28,6 +37,12 @@ public:
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+		float GetHealth() { return Health; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+		float GetMana() { return Mana; }
 
 protected:
 
