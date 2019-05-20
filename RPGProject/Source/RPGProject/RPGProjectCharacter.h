@@ -22,10 +22,10 @@ class ARPGProjectCharacter : public ACharacter
 private:
 
 	UPROPERTY(VisibleAnywhere, Category = "Stats")
-		float Health;
+		float Health = 1; // Health in procentage 1 equal to 100%
 
 	UPROPERTY(VisibleAnywhere, Category = "Stats")
-		float Mana;
+		float Mana = 1; // Mana in procentage 1 equal to 100%
 
 public:
 	ARPGProjectCharacter();
