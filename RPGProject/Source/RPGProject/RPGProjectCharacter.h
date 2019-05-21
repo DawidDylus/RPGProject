@@ -21,11 +21,16 @@ class ARPGProjectCharacter : public ACharacter
 
 private:
 
+	FTimerHandle TimerHandle;
+
 	UPROPERTY(VisibleAnywhere, Category = "Stats")
 		float Health = 1; // Health in procentage 1 equal to 100%
 
 	UPROPERTY(VisibleAnywhere, Category = "Stats")
 		float Mana = 1; // Mana in procentage 1 equal to 100%
+
+	UPROPERTY(VisibleAnywhere, Category = "Casting")
+		bool Casting1H;
 
 public:
 	ARPGProjectCharacter();
@@ -44,7 +49,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stats")
 		float GetMana() { return Mana; }
 
+	UFUNCTION(BlueprintPure, Category = "Casting")
+		bool GetCasting1H() { return  Casting1H; }
+
 protected:
+
+	/** Cast spell 1H changing bool Cast1H to true*/
+	void CastSpell1H();
+	void StopCastingSpell1H();
 
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();

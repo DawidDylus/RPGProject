@@ -1,5 +1,6 @@
 // Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
 
+#include "TimerManager.h"
 #include "RPGProjectCharacter.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
@@ -51,7 +52,7 @@ ARPGProjectCharacter::ARPGProjectCharacter()
 // Input
 
 void ARPGProjectCharacter::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
-{
+{ 	
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
@@ -59,6 +60,12 @@ void ARPGProjectCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &ARPGProjectCharacter::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &ARPGProjectCharacter::MoveRight);
+
+	// Set up Casting key binding
+	PlayerInputComponent->BindAction("Cast1H", IE_Pressed, this, &ARPGProjectCharacter::CastSpell1H);
+
+	/** Commented out becaue we want to wait for the end of animation of CastSpell1H. (We dont want to change Casting1H midway.)*/
+	//PlayerInputComponent->BindAction("Cast1H", IE_Released, this, &ARPGProjectCharacter::StopCastingSpell1H);
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
@@ -76,6 +83,18 @@ void ARPGProjectCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ARPGProjectCharacter::OnResetVR);
 }
 
+
+void ARPGProjectCharacter::CastSpell1H()
+{	
+	Casting1H = true;
+	// Seting up a Timer. We are waiting for an end of animation to change Casting1H back to false.	
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ARPGProjectCharacter::StopCastingSpell1H, 2.266667f, false);
+}
+
+void ARPGProjectCharacter::StopCastingSpell1H()
+{
+	Casting1H = false;
+}
 
 void ARPGProjectCharacter::OnResetVR()
 {
