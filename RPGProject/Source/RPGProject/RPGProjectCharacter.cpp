@@ -86,14 +86,29 @@ void ARPGProjectCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 
 void ARPGProjectCharacter::CastSpell1H()
 {	
-	Casting1H = true;
-	// Seting up a Timer. We are waiting for an end of animation to change Casting1H back to false.	
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ARPGProjectCharacter::StopCastingSpell1H, 2.266667f, false);
+	if (!Casting1H && Mana>=0.15f) 
+	{		
+		GetCharacterMovement()->Deactivate();
+		GetCharacterMovement()->StopMovementImmediately();
+		
+		Casting1H = true;
+		// SpawnEmitterAtLocation is in character Eve_BP (effect of healing spell, particle) 
+		// to avoid direct content references in C++ 
+		
+		// Seting up a Timer. We are waiting for an end of animation to change Casting1H back to false.	
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ARPGProjectCharacter::StopCastingSpell1H, 2.266667f, false);
+		
+	}
+	
 }
 
 void ARPGProjectCharacter::StopCastingSpell1H()
 {
 	Casting1H = false;
+
+	Mana -= 0.15f;
+	Health += 0.15f;
+	GetCharacterMovement()->Activate();
 }
 
 void ARPGProjectCharacter::OnResetVR()

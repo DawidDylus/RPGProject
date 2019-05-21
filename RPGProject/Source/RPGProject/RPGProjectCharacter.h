@@ -24,10 +24,10 @@ private:
 	FTimerHandle TimerHandle;
 
 	UPROPERTY(VisibleAnywhere, Category = "Stats")
-		float Health = 1; // Health in procentage 1 equal to 100%
+		float Health = 0.5f; // Health in procentage 1 equal to 100%
 
 	UPROPERTY(VisibleAnywhere, Category = "Stats")
-		float Mana = 1; // Mana in procentage 1 equal to 100%
+		float Mana = 0.75f; // Mana in procentage 1 equal to 100%
 
 	UPROPERTY(VisibleAnywhere, Category = "Casting")
 		bool Casting1H;
