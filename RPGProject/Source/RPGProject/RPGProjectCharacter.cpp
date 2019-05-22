@@ -1,7 +1,7 @@
 // Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
 
-#include "TimerManager.h"
 #include "RPGProjectCharacter.h"
+#include "TimerManager.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -45,8 +45,9 @@ ARPGProjectCharacter::ARPGProjectCharacter()
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
-	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)	
 }
+
 
 //////////////////////////////////////////////////////////////////////////
 // Input
@@ -84,6 +85,40 @@ void ARPGProjectCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 }
 
 
+void ARPGProjectCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	/** Timer that handle Passive Regeneration of Mana and Health variable.*/
+	GetWorld()->GetTimerManager().SetTimer(HealthRateTimerHandle, this, &ARPGProjectCharacter::PassiveHealthRegeneration, HealthRegenerationRate, true);
+	GetWorld()->GetTimerManager().SetTimer(ManaRateTimerHandle, this, &ARPGProjectCharacter::PassiveManaRegeneration, ManaRegenerationRate, true);
+}
+
+void ARPGProjectCharacter::PassiveHealthRegeneration()
+{
+	if (Health < 1)
+	{
+		Health += HealthRegeneration;
+
+		if (Health > 1)
+		{
+			Health = 1;
+		}
+	}	
+}
+
+void ARPGProjectCharacter::PassiveManaRegeneration()
+{
+	if (Mana < 1)
+	{
+		Mana += ManaRegeneration;
+		if (Mana > 1)
+		{
+			Mana = 1;
+		}
+	}	
+}
+
 void ARPGProjectCharacter::CastSpell1H()
 {	
 	if (!Casting1H && Mana>=0.15f) 
@@ -96,10 +131,8 @@ void ARPGProjectCharacter::CastSpell1H()
 		// to avoid direct content references in C++ 
 		
 		// Seting up a Timer. We are waiting for an end of animation to change Casting1H back to false.	
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ARPGProjectCharacter::StopCastingSpell1H, 2.266667f, false);
-		
-	}
-	
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ARPGProjectCharacter::StopCastingSpell1H, 2.266667f, false);		
+	}	
 }
 
 void ARPGProjectCharacter::StopCastingSpell1H()

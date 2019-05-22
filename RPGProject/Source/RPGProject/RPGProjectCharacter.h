@@ -22,6 +22,8 @@ class ARPGProjectCharacter : public ACharacter
 private:
 
 	FTimerHandle TimerHandle;
+	FTimerHandle HealthRateTimerHandle;
+	FTimerHandle ManaRateTimerHandle;
 
 	UPROPERTY(VisibleAnywhere, Category = "Stats")
 		float Health = 0.5f; // Health in procentage 1 equal to 100%
@@ -30,10 +32,22 @@ private:
 		float Mana = 0.75f; // Mana in procentage 1 equal to 100%
 
 	UPROPERTY(VisibleAnywhere, Category = "Casting")
-		bool Casting1H;
+		bool Casting1H;	
+	
+	UPROPERTY(EditAnywhere, Category = "Stats")
+		float HealthRegeneration = 0.05f; // Health regeneration in procentage
+
+	UPROPERTY(EditAnywhere, Category = "Stats")
+		float ManaRegeneration = 0.05f; // Mana regeneration in procentage
+
+	UPROPERTY(EditAnywhere, Category = "Stats")
+		float HealthRegenerationRate = 1.f; // Time in sec that PassiveHealthRegeneration function will take effect
+
+	UPROPERTY(EditAnywhere, Category = "Stats")
+		float ManaRegenerationRate = 1.f;	// Time in sec that PassiveManaRegeneration function will take effect	
 
 public:
-	ARPGProjectCharacter();
+	ARPGProjectCharacter();	
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
@@ -50,9 +64,26 @@ public:
 		float GetMana() { return Mana; }
 
 	UFUNCTION(BlueprintPure, Category = "Casting")
-		bool GetCasting1H() { return  Casting1H; }
+		bool GetCasting1H() { return  Casting1H; }	
+
+/*
+	UFUNCTION(BlueprintPure, Category = "Stats")
+		float GetHealthRegeneration() { return HealthRegeneration; }
+
+	UFUNCTION(BlueprintPure, Category = "Stats")
+		float GetManaRegeneration() { return ManaRegeneration; }
+
+*/
 
 protected:
+
+	virtual void BeginPlay() override;
+
+	/** Regenerate Health based on HealthRegeneration variable */
+	void PassiveHealthRegeneration();
+
+	/** Regenerate Mana based on ManaRegeneration variable */
+	void PassiveManaRegeneration();
 
 	/** Cast spell 1H changing bool Cast1H to true*/
 	void CastSpell1H();
