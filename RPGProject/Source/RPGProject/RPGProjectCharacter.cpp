@@ -1,7 +1,7 @@
 // Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
 
 #include "RPGProjectCharacter.h"
-#include  "Engine/Engine.h"
+#include "Engine/Engine.h"
 #include "Engine/Public/TimerManager.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
@@ -16,11 +16,12 @@
 
 ARPGProjectCharacter::ARPGProjectCharacter()
 {
+	
 	// Enable Tick Event.
 	PrimaryActorTick.bCanEverTick = true;
 
 	// Set size for collision capsule
-	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
+	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);	
 
 	// set our turn rates for input
 	BaseTurnRate = 45.f;
@@ -113,6 +114,7 @@ void ARPGProjectCharacter::PassiveRegeneration(float& TempTimeHandle, float& Atr
 	}
 }
 
+// TODO Fix stoping in midair when casting spell (stop movement immediately();) 
 void ARPGProjectCharacter::CastSpell1H()
 {		// TODO Eliminate Magic number. Mana cost. 
 	if (!Casting1H && Mana>=0.15f) 

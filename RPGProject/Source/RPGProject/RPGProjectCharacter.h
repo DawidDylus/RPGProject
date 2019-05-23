@@ -73,9 +73,7 @@ public:
 		float GetHealthRegeneration() { return HealthRegeneration; }
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
-		float GetManaRegeneration() { return ManaRegeneration; }
-
-	
+		float GetManaRegeneration() { return ManaRegeneration; }	
 
 public:
 
