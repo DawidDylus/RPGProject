@@ -1,7 +1,8 @@
 // Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
 
 #include "RPGProjectCharacter.h"
-#include "TimerManager.h"
+#include  "Engine/Engine.h"
+#include "Engine/Public/TimerManager.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -15,6 +16,9 @@
 
 ARPGProjectCharacter::ARPGProjectCharacter()
 {
+	// Enable Tick Event.
+	PrimaryActorTick.bCanEverTick = true;
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -84,43 +88,33 @@ void ARPGProjectCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ARPGProjectCharacter::OnResetVR);
 }
 
-
-void ARPGProjectCharacter::BeginPlay()
+void ARPGProjectCharacter::Tick(float DeltaSeconds)
 {
-	Super::BeginPlay();
-
-	/** Timer that handle Passive Regeneration of Mana and Health variable.*/
-	GetWorld()->GetTimerManager().SetTimer(HealthRateTimerHandle, this, &ARPGProjectCharacter::PassiveHealthRegeneration, HealthRegenerationRate, true);
-	GetWorld()->GetTimerManager().SetTimer(ManaRateTimerHandle, this, &ARPGProjectCharacter::PassiveManaRegeneration, ManaRegenerationRate, true);
+	Super::Tick(DeltaSeconds);
+	
+	PassiveRegeneration(HealthTempTimeHandle, Health, HealthRegeneration, HealthRegenerationRate, DeltaSeconds);
+	PassiveRegeneration(ManaTempTimeHandle, Mana, ManaRegeneration, ManaRegenerationRate, DeltaSeconds);
 }
 
-void ARPGProjectCharacter::PassiveHealthRegeneration()
-{
-	if (Health < 1)
+void ARPGProjectCharacter::PassiveRegeneration(float& TempTimeHandle, float& Atribute, float AtributeRegeneration, float AtributeRegenerationRate, float DeltaSeconds)
+{		
+	TempTimeHandle += DeltaSeconds;
+	if (AtributeRegenerationRate <= TempTimeHandle)
 	{
-		Health += HealthRegeneration;
-
-		if (Health > 1)
-		{
-			Health = 1;
+		TempTimeHandle = 0.f;
+		if (Atribute < 1.f) // 1 is equal to 100%
+		{			
+			Atribute += AtributeRegeneration;			
+			if (Atribute > 1.f)
+			{
+				Atribute = 1.f;
+			}
 		}
-	}	
-}
-
-void ARPGProjectCharacter::PassiveManaRegeneration()
-{
-	if (Mana < 1)
-	{
-		Mana += ManaRegeneration;
-		if (Mana > 1)
-		{
-			Mana = 1;
-		}
-	}	
+	}
 }
 
 void ARPGProjectCharacter::CastSpell1H()
-{	
+{		// TODO Eliminate Magic number. Mana cost. 
 	if (!Casting1H && Mana>=0.15f) 
 	{		
 		GetCharacterMovement()->Deactivate();
@@ -131,14 +125,14 @@ void ARPGProjectCharacter::CastSpell1H()
 		// to avoid direct content references in C++ 
 		
 		// Seting up a Timer. We are waiting for an end of animation to change Casting1H back to false.	
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle, this, &ARPGProjectCharacter::StopCastingSpell1H, 2.266667f, false);		
+		GetWorld()->GetTimerManager().SetTimer(CastSpell1HTimerHandle, this, &ARPGProjectCharacter::StopCastingSpell1H, 2.2f, false);		
 	}	
 }
 
 void ARPGProjectCharacter::StopCastingSpell1H()
 {
 	Casting1H = false;
-
+	// TODO Eliminate Magic number. Spell effect.
 	Mana -= 0.15f;
 	Health += 0.15f;
 	GetCharacterMovement()->Activate();

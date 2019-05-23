@@ -2,6 +2,7 @@
 
 #pragma once
 
+
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "RPGProjectCharacter.generated.h"
@@ -20,31 +21,33 @@ class ARPGProjectCharacter : public ACharacter
 	class UCameraComponent* FollowCamera;
 
 private:
-
-	FTimerHandle TimerHandle;
-	FTimerHandle HealthRateTimerHandle;
-	FTimerHandle ManaRateTimerHandle;
+	FTimerHandle CastSpell1HTimerHandle;	
 
 	UPROPERTY(VisibleAnywhere, Category = "Stats")
-		float Health = 0.5f; // Health in procentage 1 equal to 100%
+		float Health = 0.5f; // Health in percentage 1 equal to 100%
 
 	UPROPERTY(VisibleAnywhere, Category = "Stats")
-		float Mana = 0.75f; // Mana in procentage 1 equal to 100%
+		float Mana = 0.75f; // Mana in percentage 1 equal to 100%
 
 	UPROPERTY(VisibleAnywhere, Category = "Casting")
 		bool Casting1H;	
 	
 	UPROPERTY(EditAnywhere, Category = "Stats")
-		float HealthRegeneration = 0.05f; // Health regeneration in procentage
+		float HealthRegeneration = 0.01f; // Health regeneration in procentage
 
 	UPROPERTY(EditAnywhere, Category = "Stats")
-		float ManaRegeneration = 0.05f; // Mana regeneration in procentage
+		float ManaRegeneration = 0.01f; // Mana regeneration in procentage
 
 	UPROPERTY(EditAnywhere, Category = "Stats")
 		float HealthRegenerationRate = 1.f; // Time in sec that PassiveHealthRegeneration function will take effect
 
 	UPROPERTY(EditAnywhere, Category = "Stats")
 		float ManaRegenerationRate = 1.f;	// Time in sec that PassiveManaRegeneration function will take effect	
+
+	UPROPERTY()
+	float HealthTempTimeHandle = 0.f;
+	UPROPERTY()
+	float ManaTempTimeHandle = 0.f;
 
 public:
 	ARPGProjectCharacter();	
@@ -66,25 +69,29 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Casting")
 		bool GetCasting1H() { return  Casting1H; }	
 
-/*
 	UFUNCTION(BlueprintPure, Category = "Stats")
 		float GetHealthRegeneration() { return HealthRegeneration; }
 
 	UFUNCTION(BlueprintPure, Category = "Stats")
 		float GetManaRegeneration() { return ManaRegeneration; }
 
-*/
+	
+
+public:
+
+	virtual void Tick(float DeltaSeconds) override;
+
+	/** Regenerate a variable based on this variable regeneration value
+	*@param TempTimeHandle Unique handle for time. Similar to TimerHandle.
+	*@param Atribute regenerate in percents (e.g. Health)
+	*@param AtributeRegeneration Value at whitch Atribute will be regenerated in percents (e.g. HealthRegeneration)
+	*@param AtributeRegenerationRate Time between each regeneration(e.g. HealthRegenerationRate)
+	*@param DeltaSeconds passed from TickEvent, necessary to calculations (count seconds passed in game so that AtributeREgenerationRate can work properly) 	
+	*/
+	UFUNCTION()
+	void PassiveRegeneration(float& TempTimeHandle, float& Atribute, float AtributeRegeneration, float AtributeRegenerationRate, float DetlaSeconds);
 
 protected:
-
-	virtual void BeginPlay() override;
-
-	/** Regenerate Health based on HealthRegeneration variable */
-	void PassiveHealthRegeneration();
-
-	/** Regenerate Mana based on ManaRegeneration variable */
-	void PassiveManaRegeneration();
-
 	/** Cast spell 1H changing bool Cast1H to true*/
 	void CastSpell1H();
 	void StopCastingSpell1H();
@@ -127,4 +134,5 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 };
+
 
