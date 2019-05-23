@@ -46,6 +46,7 @@ private:
 
 	UPROPERTY()
 	float HealthTempTimeHandle = 0.f;
+
 	UPROPERTY()
 	float ManaTempTimeHandle = 0.f;
 
@@ -63,8 +64,14 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Stats")
 		float GetHealth() { return Health; }
 
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+		void SetHealth(float NewHealth) { Health = NewHealth; }
+
 	UFUNCTION(BlueprintPure, Category = "Stats")
 		float GetMana() { return Mana; }
+
+	UFUNCTION(BlueprintCallable, Category = "Stats")
+		void SetMana(float NewMana) { Mana = NewMana; }
 
 	UFUNCTION(BlueprintPure, Category = "Casting")
 		bool GetCasting1H() { return  Casting1H; }	

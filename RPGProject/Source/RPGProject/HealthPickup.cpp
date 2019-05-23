@@ -5,6 +5,7 @@
 #include "Components/CapsuleComponent.h"
 #include "RPGProjectCharacter.h"
 #include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
 #include "Particles/ParticleSystemComponent.h"
 
 // Sets default values
@@ -28,10 +29,9 @@ AHealthPickup::AHealthPickup()
 void AHealthPickup::BeginPlay()
 {
 	Super::BeginPlay();
-
-	// Call Function PickupEffect when actors will overlap
-	this->OnActorBeginOverlap.AddDynamic(this, &AHealthPickup::PickupEffect);
 	
+	// Call Function PickupEffect when actors will overlap
+	this->OnActorBeginOverlap.AddDynamic(this, &AHealthPickup::PickupEffect);	
 }
 
 // Called every frame
@@ -42,9 +42,39 @@ void AHealthPickup::Tick(float DeltaTime)
 }
 
 void AHealthPickup::PickupEffect(AActor* MyOverlappedActor, AActor* OtherActor)
-{
-	//Cast<ARPGProjectCharacter>()
-	UE_LOG(LogTemp, Warning, TEXT("Overlap"));
-	GEngine->AddOnScreenDebugMessage(-1, 2, FColor::Green, FString::Printf(TEXT("HEAL")));
+{	
+	ARPGProjectCharacter* OtherOverlappedActor = Cast<ARPGProjectCharacter>(OtherActor);
+	if (OtherOverlappedActor)
+	{		
+		float Health = OtherOverlappedActor->GetHealth();
+		if (Health < 1.f)
+		{
+			Health += HealValue;
+			if (Health > 1.f)
+			{
+				Health = 1.f;
+			}
+			OtherOverlappedActor->SetHealth(Health);
+
+			if (!ParticleSpawnAtTarget)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Template for ParticleSpawnAtTarget is not found!"));
+				Destroy();
+				GEngine->ForceGarbageCollection();
+			}
+			else
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(
+					GetWorld(),
+					ParticleSpawnAtTarget,
+					OtherOverlappedActor->GetActorLocation(),
+					OtherOverlappedActor->GetActorRotation(),
+					true
+				);
+				Destroy();
+				GEngine->ForceGarbageCollection();
+			}
+		}
+	}	
 }
 
