@@ -23,10 +23,10 @@ class ARPGProjectCharacter : public ACharacter
 private:
 	FTimerHandle CastSpell1HTimerHandle;	
 
-	UPROPERTY(VisibleAnywhere, Category = "Stats")
+	UPROPERTY(EditAnywhere, Category = "Stats")
 		float Health = 0.5f; // Health in percentage 1 equal to 100%
 
-	UPROPERTY(VisibleAnywhere, Category = "Stats")
+	UPROPERTY(EditAnywhere, Category = "Stats")
 		float Mana = 0.75f; // Mana in percentage 1 equal to 100%
 
 	UPROPERTY(VisibleAnywhere, Category = "Casting")
