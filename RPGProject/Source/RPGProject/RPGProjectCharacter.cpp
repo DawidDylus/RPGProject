@@ -1,7 +1,7 @@
 // Copyright 1998-2019 Epic Games, Inc. All Rights Reserved.
 
 #include "RPGProjectCharacter.h"
-#include "Engine/Engine.h"
+#include "Kismet/GameplayStatics.h"
 #include "Engine/Public/TimerManager.h"
 #include "HeadMountedDisplayFunctionLibrary.h"
 #include "Camera/CameraComponent.h"
@@ -10,22 +10,43 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // ARPGProjectCharacter
 
 ARPGProjectCharacter::ARPGProjectCharacter()
-{
-	
+{	
 	// Enable Tick Event.
 	PrimaryActorTick.bCanEverTick = true;
 
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);	
 
-	// set our turn rates for input
+	// Set our turn rates for input
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
+
+	// Set basic Attributes for character
+	HealthPercentage = 0.5f;
+	HealthRegenerationRate = 1.f;
+	ManaPercentage = 0.75f;
+	ManaRegenerationRate = 1.f;
+	HealthRegeneration = 0.01f;
+	ManaRegeneration = 0.01f;
+	
+	// Casting
+	bCurrentlyCasting = false;
+
+	// Play animation if true
+	bPlaying1HCastingAnimation = false;
+
+	// Set particle templates for spells (effects) - nullptr for safety, change in child BP class.
+	HealingParticleTemplate = nullptr;	
+
+	// Dependency for calculating PassedTime variable in PassiveRegeneration()
+	HealthTimeHandle = 0.f;
+	ManaTimeHandle = 0.f;
 
 	// Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
@@ -36,7 +57,7 @@ ARPGProjectCharacter::ARPGProjectCharacter()
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
 	GetCharacterMovement()->JumpZVelocity = 600.f;
-	GetCharacterMovement()->AirControl = 0.2f;
+	GetCharacterMovement()->AirControl = 0.2f;	
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
@@ -48,7 +69,7 @@ ARPGProjectCharacter::ARPGProjectCharacter()
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
-
+	
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)	
 }
@@ -61,6 +82,7 @@ void ARPGProjectCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 { 	
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
+	
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
@@ -68,7 +90,7 @@ void ARPGProjectCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 	PlayerInputComponent->BindAxis("MoveRight", this, &ARPGProjectCharacter::MoveRight);
 
 	// Set up Casting key binding
-	PlayerInputComponent->BindAction("Cast1H", IE_Pressed, this, &ARPGProjectCharacter::CastSpell1H);
+	PlayerInputComponent->BindAction("Cast1H", IE_Pressed, this, &ARPGProjectCharacter::CastHeal);
 
 	/** Commented out becaue we want to wait for the end of animation of CastSpell1H. (We dont want to change Casting1H midway.)*/
 	//PlayerInputComponent->BindAction("Cast1H", IE_Released, this, &ARPGProjectCharacter::StopCastingSpell1H);
@@ -87,57 +109,99 @@ void ARPGProjectCharacter::SetupPlayerInputComponent(class UInputComponent* Play
 
 	// VR headset functionality
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &ARPGProjectCharacter::OnResetVR);
+	
 }
 
 void ARPGProjectCharacter::Tick(float DeltaSeconds)
-{
+{	
 	Super::Tick(DeltaSeconds);
 	
-	PassiveRegeneration(HealthTempTimeHandle, Health, HealthRegeneration, HealthRegenerationRate, DeltaSeconds);
-	PassiveRegeneration(ManaTempTimeHandle, Mana, ManaRegeneration, ManaRegenerationRate, DeltaSeconds);
+	PassiveRegeneration(HealthTimeHandle, HealthPercentage, HealthRegeneration, HealthRegenerationRate);
+	PassiveRegeneration(ManaTimeHandle, ManaPercentage, ManaRegeneration, ManaRegenerationRate);
 }
 
-void ARPGProjectCharacter::PassiveRegeneration(float& TempTimeHandle, float& Atribute, float AtributeRegeneration, float AtributeRegenerationRate, float DeltaSeconds)
+
+void ARPGProjectCharacter::PassiveRegeneration(float& OutTimePassedHandle, float& OutAtribute, const float& ValueOfRegeneration, const float& AtributeRegenerationRate)
 {		
-	TempTimeHandle += DeltaSeconds;
-	if (AtributeRegenerationRate <= TempTimeHandle)
+	if (ShouldTriggerFunction(OutTimePassedHandle, AtributeRegenerationRate))
 	{
-		TempTimeHandle = 0.f;
-		if (Atribute < 1.f) // 1 is equal to 100%
-		{			
-			Atribute += AtributeRegeneration;			
-			if (Atribute > 1.f)
-			{
-				Atribute = 1.f;
-			}
+		ChangeAttribute(OutAtribute, ValueOfRegeneration);
+	}
+}
+
+void ARPGProjectCharacter::ChangeAttribute(float& OutAttribute, const float& ValueToAdd)
+{
+	static const float HundredPercent = 1.f;
+	if (OutAttribute < HundredPercent) 
+	{
+		OutAttribute += ValueToAdd;
+		if (OutAttribute > HundredPercent)
+		{
+			OutAttribute = HundredPercent;
 		}
 	}
 }
 
-// TODO Fix stoping in midair when casting spell (stop movement immediately();) 
-void ARPGProjectCharacter::CastSpell1H()
-{		// TODO Eliminate Magic number. Mana cost. 
-	if (!Casting1H && Mana>=0.15f) 
-	{		
-		GetCharacterMovement()->Deactivate();
-		GetCharacterMovement()->StopMovementImmediately();
-		
-		Casting1H = true;
-		// SpawnEmitterAtLocation is in character Eve_BP (effect of healing spell, particle) 
-		// to avoid direct content references in C++ 
-		
-		// Seting up a Timer. We are waiting for an end of animation to change Casting1H back to false.	
-		GetWorld()->GetTimerManager().SetTimer(CastSpell1HTimerHandle, this, &ARPGProjectCharacter::StopCastingSpell1H, 2.2f, false);		
-	}	
+bool ARPGProjectCharacter::ShouldTriggerFunction(float& OutTimePassed, const float& TimeToTrigger)
+{
+	OutTimePassed += GetWorld()->GetDeltaSeconds();
+	if (OutTimePassed >= TimeToTrigger) 
+	{
+		OutTimePassed = 0.f;
+		return true;
+	}
+	else
+	{
+		return false;
+	}		
 }
 
-void ARPGProjectCharacter::StopCastingSpell1H()
+void ARPGProjectCharacter::Play1HCastingAnimation()
+{	
+	const float AnimationDuration = 2.2f;
+	bPlaying1HCastingAnimation = true;
+	GetWorldTimerManager().SetTimer(CastSpellAnimationTimerHandle, this, &ARPGProjectCharacter::OnTimerEnds, AnimationDuration, false);	
+}
+
+void ARPGProjectCharacter::OnTimerEnds()
 {
-	Casting1H = false;
-	// TODO Eliminate Magic number. Spell effect.
-	Mana -= 0.15f;
-	Health += 0.15f;
-	GetCharacterMovement()->Activate();
+	bPlaying1HCastingAnimation = false;
+}
+
+void ARPGProjectCharacter::CastHeal()
+{	
+	if (!GetCharacterMovement()->IsFalling() && !GetCharacterMovement()->IsFlying() && !GetCharacterMovement()->IsSwimming())
+	{
+		// deactivate character movement  input	 if active movement only turn it off for a sec
+		// GetCharacterMovement()->Deactivate();
+		GetCharacterMovement()->StopActiveMovement();
+		GetCharacterMovement()->StopMovementImmediately();
+
+		// TODO declare those variables in .h so that they can be modified in ue4
+		const float ManaCost = 0.15f;
+		const float HealingValue = 0.15f;
+		if (!bCurrentlyCasting && ManaPercentage >= ManaCost)
+		{			
+			ManaPercentage -= ManaCost;
+
+			UGameplayStatics::SpawnEmitterAtLocation(
+				GetWorld(),
+				HealingParticleTemplate,
+				GetMesh()->GetSocketLocation("RightFoot"),
+				GetActorRotation(),
+				true
+			);			
+			Play1HCastingAnimation();
+
+			// TODO Check if health is changed after animation or before
+				// use while to wait for variable to change (to false)
+				// or reserch more about async #include "Async/Future.h"
+			HealthPercentage += HealingValue;
+
+			//GetCharacterMovement()->Activate();
+		}
+
+	}
 }
 
 void ARPGProjectCharacter::OnResetVR()

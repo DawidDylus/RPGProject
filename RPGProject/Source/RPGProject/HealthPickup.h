@@ -11,7 +11,7 @@ class RPGPROJECT_API AHealthPickup : public AActor
 {
 	GENERATED_BODY()
 
-	// ParticleSystem adds particles effect.
+	// ParticleSystem adds particles effect. Effects is played as long as item exist.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Particles, meta = (AllowPrivateAccess = "true"))
 	class UParticleSystemComponent* ParticleSystem;
 
@@ -23,7 +23,7 @@ private:
 		float HealValue = 0.20f;
 
 	UPROPERTY(EditAnywhere, Category = "Particle Template")
-		class UParticleSystem* ParticleSpawnAtTarget = nullptr; // spawn when this Actor collide with ARPGProjectCharacter
+		class UParticleSystem* ParticleToSpawn; // spawn when this Actor collide with ARPGProjectCharacter
 
 public:	
 	// Sets default values for this actor's properties

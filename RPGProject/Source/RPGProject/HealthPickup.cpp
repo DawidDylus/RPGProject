@@ -21,6 +21,7 @@ AHealthPickup::AHealthPickup()
 	ParticleSystem = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("ParticleSystem"));
 	ParticleSystem->SetupAttachment(CapsuleComponent);
 
+	ParticleToSpawn = nullptr;
 	// ParticleSystemComponent references are set in the derived blueprint asset named HealthPickup_BP
 	// (to avoid direct content references in C++)	
 }
@@ -46,7 +47,7 @@ void AHealthPickup::PickupEffect(AActor* MyOverlappedActor, AActor* OtherActor)
 	ARPGProjectCharacter* OtherOverlappedActor = Cast<ARPGProjectCharacter>(OtherActor);
 	if (OtherOverlappedActor)
 	{		
-		float Health = OtherOverlappedActor->GetHealth();
+		float Health = OtherOverlappedActor->HealthPercentage;
 		if (Health < 1.f)
 		{
 			Health += HealValue;
@@ -54,9 +55,9 @@ void AHealthPickup::PickupEffect(AActor* MyOverlappedActor, AActor* OtherActor)
 			{
 				Health = 1.f;
 			}
-			OtherOverlappedActor->SetHealth(Health);
+			OtherOverlappedActor->HealthPercentage = Health;
 
-			if (!ParticleSpawnAtTarget)
+			if (!ParticleToSpawn)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Template for ParticleSpawnAtTarget is not found!"));
 				Destroy();
@@ -66,7 +67,7 @@ void AHealthPickup::PickupEffect(AActor* MyOverlappedActor, AActor* OtherActor)
 			{
 				UGameplayStatics::SpawnEmitterAtLocation(
 					GetWorld(),
-					ParticleSpawnAtTarget,
+					ParticleToSpawn,
 					OtherOverlappedActor->GetActorLocation(),
 					OtherOverlappedActor->GetActorRotation(),
 					true

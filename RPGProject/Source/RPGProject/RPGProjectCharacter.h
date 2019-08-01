@@ -21,85 +21,90 @@ class ARPGProjectCharacter : public ACharacter
 	class UCameraComponent* FollowCamera;
 
 private:
-	FTimerHandle CastSpell1HTimerHandle;	
-
-	UPROPERTY(EditAnywhere, Category = "Stats")
-		float Health = 0.5f; // Health in percentage 1 equal to 100%
-
-	UPROPERTY(EditAnywhere, Category = "Stats")
-		float Mana = 0.75f; // Mana in percentage 1 equal to 100%
-
-	UPROPERTY(VisibleAnywhere, Category = "Casting")
-		bool Casting1H;	
+	FTimerHandle CastSpellAnimationTimerHandle;
 	
-	UPROPERTY(EditAnywhere, Category = "Stats")
-		float HealthRegeneration = 0.01f; // Health regeneration in procentage
-
-	UPROPERTY(EditAnywhere, Category = "Stats")
-		float ManaRegeneration = 0.01f; // Mana regeneration in procentage
-
-	UPROPERTY(EditAnywhere, Category = "Stats")
-		float HealthRegenerationRate = 1.f; // Time in sec that PassiveHealthRegeneration function will take effect
-
-	UPROPERTY(EditAnywhere, Category = "Stats")
-		float ManaRegenerationRate = 1.f;	// Time in sec that PassiveManaRegeneration function will take effect	
-
-	UPROPERTY()
-	float HealthTempTimeHandle = 0.f;
-
-	UPROPERTY()
-	float ManaTempTimeHandle = 0.f;
+	
+	float HealthTimeHandle;	
+	float ManaTimeHandle;
 
 public:
 	ARPGProjectCharacter();	
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
-	float BaseTurnRate;
+		float BaseTurnRate;
 
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
-	float BaseLookUpRate;
+		float BaseLookUpRate;
 
-	UFUNCTION(BlueprintPure, Category = "Stats")
-		float GetHealth() { return Health; }
+	// Health in percentage 1 equal to 100%	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Atributes")
+		float HealthPercentage; 
 
-	UFUNCTION(BlueprintCallable, Category = "Stats")
-		void SetHealth(float NewHealth) { Health = NewHealth; }
+	// Mana in percentage 1 equal to 100%	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Atributes")
+		float ManaPercentage; 	
 
-	UFUNCTION(BlueprintPure, Category = "Stats")
-		float GetMana() { return Mana; }
+	// Value in percentage of which Health will be regenerated
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Atributes")
+		float HealthRegeneration; 
 
-	UFUNCTION(BlueprintCallable, Category = "Stats")
-		void SetMana(float NewMana) { Mana = NewMana; }
+	// Value in percentage of which Mana will be regenerated
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Atributes")
+		float ManaRegeneration; 
 
-	UFUNCTION(BlueprintPure, Category = "Casting")
-		bool GetCasting1H() { return  Casting1H; }	
+	// Time in sec between each change of Health variable
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Atributes")
+		float HealthRegenerationRate;
 
-	UFUNCTION(BlueprintPure, Category = "Stats")
-		float GetHealthRegeneration() { return HealthRegeneration; }
+	// Time in sec between each change of Mana variable
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Atributes")
+		float ManaRegenerationRate;
 
-	UFUNCTION(BlueprintPure, Category = "Stats")
-		float GetManaRegeneration() { return ManaRegeneration; }	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Casting")
+		bool bPlaying1HCastingAnimation;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Casting")
+		bool bCurrentlyCasting;
+
+	UPROPERTY(EditAnywhere, Category = "Spells Visual Effects")
+		class UParticleSystem* HealingParticleTemplate;
 
 public:
-
 	virtual void Tick(float DeltaSeconds) override;
 
 	/** Regenerate a variable based on this variable regeneration value
-	*@param TempTimeHandle Unique handle for time. Similar to TimerHandle.
-	*@param Atribute regenerate in percents (e.g. Health)
-	*@param AtributeRegeneration Value at whitch Atribute will be regenerated in percents (e.g. HealthRegeneration)
-	*@param AtributeRegenerationRate Time between each regeneration(e.g. HealthRegenerationRate)
-	*@param DeltaSeconds passed from TickEvent, necessary to calculations (count seconds passed in game so that AtributeREgenerationRate can work properly) 	
+	*@param OutTimePassedHandle - Unique handle for time. Similar to TimerHandle.
+	*@param OutAtribute - Atribute to regenerate in percentage (e.g. Health)
+	*@param ValueOfRegeneration - Value at whitch Atribute will be regenerated in percents (e.g. HealthRegeneration)
+	*@param AtributeRegenerationRate - Time between each regeneration(e.g. HealthRegenerationRate)	
+	*@warning - Function should be called only in tick function
 	*/
 	UFUNCTION()
-	void PassiveRegeneration(float& TempTimeHandle, float& Atribute, float AtributeRegeneration, float AtributeRegenerationRate, float DetlaSeconds);
+	void PassiveRegeneration(float& OutTimePassedHandle, float& OutAtribute, const float& ValueOfRegeneration, const float& AtributeRegenerationRate);
+
+	/** Adds value to selected variable;
+	*@param OutAttribute - Variable to change
+	*@param ValueToAdd - Value by whitch variable will be changed
+	*/
+	UFUNCTION()
+	void ChangeAttribute(float& OutAttribute, const float& ValueToAdd);
+
+private:
+	/** Returns true when certain time passed 
+	*@param OutTimePassed - variable that will store time passed in game calculated from delta seconds.
+	*@param TimeToTrigger - time in seconds to return true and zeroed OutTimePassed value
+	*@warning - Function should be called only in tick function
+	*/
+	bool ShouldTriggerFunction(float& OutTimePassed, const float& TimeToTrigger);
+
+	void Play1HCastingAnimation();
+	void OnTimerEnds();
 
 protected:
-	/** Cast spell 1H changing bool Cast1H to true*/
-	void CastSpell1H();
-	void StopCastingSpell1H();
+
+	void CastHeal();
 
 	/** Resets HMD orientation in VR. */
 	void OnResetVR();
@@ -126,7 +131,7 @@ protected:
 	void TouchStarted(ETouchIndex::Type FingerIndex, FVector Location);
 
 	/** Handler for when a touch input stops. */
-	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
+	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);	
 
 protected:
 	// APawn interface
@@ -139,5 +144,3 @@ public:
 	/** Returns FollowCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 };
-
-
